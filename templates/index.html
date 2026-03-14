@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AeroForge — AI Mesh Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;400;600;700&family=Exo+2:wght@200;400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  :root {
+    --bg: #03050a;
+    --surface: #080d18;
+    --surface2: #0d1626;
+    --border: #1a2d4a;
+    --border-bright: #1e6fff;
+    --accent: #00d4ff;
+    --accent2: #0066ff;
+    --accent3: #ff6b35;
+    --text: #c8dff0;
+    --text-dim: #4a6a8a;
+    --text-bright: #ffffff;
+    --green: #00ff9f;
+    --red: #ff3366;
+    --grid: rgba(0, 212, 255, 0.04);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Exo 2', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    overflow: hidden;
+    position: relative;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ---- TOP BAR ---- */
+  .topbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 52px;
+    background: rgba(3,5,10,0.9);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 20px;
+    z-index: 100;
+    backdrop-filter: blur(12px);
+  }
+
+  .logo {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 22px;
+    letter-spacing: 3px;
+    color: var(--text-bright);
+    text-transform: uppercase;
+  }
+
+  .logo span { color: var(--accent); }
+
+  .logo-sub {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+  }
+
+  .status-bar {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  .status-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .nav-tabs {
+    display: flex;
+    gap: 4px;
+  }
+
+  .nav-tab {
+    padding: 6px 16px;
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    color: var(--text-dim);
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+
+  .nav-tab:hover { color: var(--text); border-color: var(--border); }
+  .nav-tab.active {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: rgba(0, 212, 255, 0.06);
+  }
+
+  /* ---- LAYOUT ---- */
+  .main-layout {
+    position: fixed;
+    top: 52px; left: 0; right: 0; bottom: 0;
+    display: flex;
+    z-index: 1;
+  }
+
+  .panel {
+    display: none;
+    width: 100%;
+    height: 100%;
+  }
+  .panel.active { display: flex; }
+
+  /* ---- CHAT PANEL ---- */
+  #chat-panel {
+    flex-direction: column;
+    max-width: 900px;
+    margin: 0 auto;
+    width: 100%;
+    padding: 20px;
+    gap: 0;
+  }
+
+  .chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px 0 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  .msg {
+    display: flex;
+    gap: 12px;
+    animation: fadeUp 0.3s ease;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .msg.user { flex-direction: row-reverse; }
+
+  .msg-avatar {
+    width: 32px; height: 32px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    flex-shrink: 0;
+  }
+
+  .msg.ai .msg-avatar {
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    color: #000;
+    font-weight: bold;
+  }
+
+  .msg.user .msg-avatar {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+  }
+
+  .msg-content {
+    max-width: 75%;
+    padding: 12px 16px;
+    border-radius: 4px;
+    line-height: 1.6;
+    font-size: 14px;
+  }
+
+  .msg.ai .msg-content {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    color: var(--text);
+  }
+
+  .msg.user .msg-content {
+    background: rgba(0, 102, 255, 0.12);
+    border: 1px solid rgba(0, 102, 255, 0.3);
+    color: var(--text-bright);
+    text-align: right;
+  }
+
+  .msg-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+  }
+
+  .chat-input-area {
+    border-top: 1px solid var(--border);
+    padding-top: 16px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+  }
+
+  .chat-input-wrap {
+    flex: 1;
+    position: relative;
+  }
+
+  .chat-input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-bright);
+    font-family: 'Exo 2', sans-serif;
+    font-size: 14px;
+    padding: 12px 16px;
+    resize: none;
+    min-height: 52px;
+    max-height: 140px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .chat-input:focus { border-color: var(--accent2); }
+
+  .send-btn {
+    padding: 14px 24px;
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    border: none;
+    border-radius: 4px;
+    color: #000;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .send-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+  .send-btn:disabled { opacity: 0.4; cursor: default; transform: none; }
+
+  .typing-indicator {
+    display: flex;
+    gap: 4px;
+    padding: 8px 0;
+    align-items: center;
+  }
+
+  .typing-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: bounce 1.2s infinite;
+  }
+
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes bounce {
+    0%, 60%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-6px); }
+  }
+
+  /* ---- EXPLORER PANEL ---- */
+  #explorer-panel {
+    flex-direction: row;
+  }
+
+  .file-sidebar {
+    width: 280px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sidebar-header {
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .sidebar-title {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--accent);
+    text-transform: uppercase;
+  }
+
+  .refresh-btn, .upload-btn {
+    padding: 4px 10px;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text-dim);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  .refresh-btn:hover, .upload-btn:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .file-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  .file-item {
+    padding: 10px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+    border: 1px solid transparent;
+    margin-bottom: 4px;
+  }
+
+  .file-item:hover {
+    background: var(--surface2);
+    border-color: var(--border);
+  }
+
+  .file-item.active {
+    background: rgba(0, 212, 255, 0.08);
+    border-color: var(--accent);
+  }
+
+  .file-name {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    color: var(--text-bright);
+    margin-bottom: 3px;
+  }
+
+  .file-meta {
+    font-size: 10px;
+    color: var(--text-dim);
+    display: flex;
+    gap: 10px;
+  }
+
+  .file-type-badge {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    padding: 1px 5px;
+    border-radius: 2px;
+    background: rgba(0, 212, 255, 0.12);
+    color: var(--accent);
+    border: 1px solid rgba(0, 212, 255, 0.2);
+  }
+
+  .upload-zone {
+    padding: 12px;
+    border-top: 1px solid var(--border);
+  }
+
+  .upload-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px;
+    border: 1px dashed var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    color: var(--text-dim);
+    font-family: 'Share Tech Mono', monospace;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+  }
+
+  .upload-label:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  #file-upload { display: none; }
+
+  /* ---- 3D VIEWER ---- */
+  .viewer-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+
+  .viewer-header {
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(8, 13, 24, 0.6);
+  }
+
+  .viewer-filename {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    color: var(--text-bright);
+  }
+
+  .viewer-hint {
+    margin-left: auto;
+    font-size: 11px;
+    color: var(--text-dim);
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  #threejs-canvas {
+    flex: 1;
+    width: 100%;
+    display: block;
+  }
+
+  .viewer-empty {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    color: var(--text-dim);
+  }
+
+  .viewer-empty-icon {
+    font-size: 48px;
+    opacity: 0.3;
+  }
+
+  .viewer-empty-text {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .info-overlay {
+    position: absolute;
+    bottom: 16px;
+    right: 16px;
+    background: rgba(8,13,24,0.85);
+    border: 1px solid var(--border);
+    padding: 12px 16px;
+    border-radius: 4px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    line-height: 1.8;
+    backdrop-filter: blur(8px);
+  }
+
+  .info-overlay span { color: var(--accent); }
+
+  /* welcome msg */
+  .welcome-msg {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent3);
+    padding: 16px 20px;
+    border-radius: 4px;
+  }
+
+  .welcome-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-bright);
+    margin-bottom: 8px;
+    letter-spacing: 1px;
+  }
+
+  .welcome-body {
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--text);
+  }
+
+  .quick-prompts {
+    margin-top: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .quick-prompt {
+    padding: 5px 12px;
+    background: rgba(255,107,53,0.08);
+    border: 1px solid rgba(255,107,53,0.25);
+    border-radius: 20px;
+    font-size: 12px;
+    color: var(--accent3);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Exo 2', sans-serif;
+  }
+
+  .quick-prompt:hover {
+    background: rgba(255,107,53,0.16);
+    border-color: var(--accent3);
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div>
+    <div class="logo">Aero<span>Forge</span></div>
+    <div class="logo-sub">AI MESH INTELLIGENCE PLATFORM</div>
+  </div>
+
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="switchTab('chat')">⬡ AI Console</button>
+    <button class="nav-tab" onclick="switchTab('explorer')">⬢ Shape Explorer</button>
+  </div>
+
+  <div class="status-bar">
+    <div class="status-dot"></div>
+    <span>SYSTEM ONLINE</span>
+    <span style="color:var(--border)">|</span>
+    <span id="shape-count">— shapes</span>
+  </div>
+</div>
+
+<div class="main-layout">
+
+  <!-- CHAT PANEL -->
+  <div id="chat-panel" class="panel active">
+    <div class="chat-messages" id="chat-messages">
+      <div class="msg ai">
+        <div class="msg-avatar">AF</div>
+        <div class="msg-content">
+          <div class="welcome-msg">
+            <div class="welcome-title">AeroForge AI — Ready</div>
+            <div class="welcome-body">
+              I'm your computational engineering assistant specializing in mesh generation and shape optimization.
+              Describe any geometry problem — aerospace structures, turbine components, civil beams, pressure vessels —
+              and I'll provide analysis, mesh parameters, and design recommendations.
+            </div>
+            <div class="quick-prompts">
+              <span class="quick-prompt" onclick="fillPrompt(this)">Analyze a NACA 2412 airfoil for mesh generation</span>
+              <span class="quick-prompt" onclick="fillPrompt(this)">Turbine blade mesh parameters for CFD</span>
+              <span class="quick-prompt" onclick="fillPrompt(this)">Structural beam FEA mesh requirements</span>
+              <span class="quick-prompt" onclick="fillPrompt(this)">Optimize mesh density for stress concentration</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chat-input-area">
+      <div class="chat-input-wrap">
+        <textarea
+          class="chat-input"
+          id="chat-input"
+          placeholder="Describe your geometry or engineering problem..."
+          rows="2"
+        ></textarea>
+      </div>
+      <button class="send-btn" id="send-btn" onclick="sendMessage()">SEND ▶</button>
+    </div>
+  </div>
+
+  <!-- EXPLORER PANEL -->
+  <div id="explorer-panel" class="panel">
+    <div class="file-sidebar">
+      <div class="sidebar-header">
+        <span class="sidebar-title">Generated Shapes</span>
+        <button class="refresh-btn" onclick="loadShapes()">↻</button>
+      </div>
+
+      <div class="file-list" id="file-list">
+        <div style="text-align:center;padding:20px;color:var(--text-dim);font-size:12px;font-family:monospace;">Loading...</div>
+      </div>
+
+      <div class="upload-zone">
+        <label class="upload-label" for="file-upload">
+          ↑ Upload Shape File
+        </label>
+        <input type="file" id="file-upload" accept=".obj,.stl,.ply" onchange="uploadFile(this)">
+      </div>
+    </div>
+
+    <div class="viewer-area">
+      <div class="viewer-header" id="viewer-header" style="display:none">
+        <span style="color:var(--accent);font-size:12px;font-family:monospace;">◈</span>
+        <span class="viewer-filename" id="viewer-filename">—</span>
+        <span class="viewer-hint">Drag to rotate · Scroll to zoom · Right-drag to pan</span>
+      </div>
+
+      <div class="viewer-empty" id="viewer-empty">
+        <div class="viewer-empty-icon">◈</div>
+        <div class="viewer-empty-text">Select a shape to view</div>
+      </div>
+
+      <canvas id="threejs-canvas" style="display:none"></canvas>
+
+      <div class="info-overlay" id="info-overlay" style="display:none">
+        Vertices: <span id="info-verts">—</span><br>
+        Faces: <span id="info-faces">—</span><br>
+        Bounds: <span id="info-bounds">—</span><br>
+        File: <span id="info-type">—</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ============ NAV ============
+function switchTab(tab) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(tab + '-panel').classList.add('active');
+  event.target.classList.add('active');
+  if (tab === 'explorer') loadShapes();
+  if (tab === 'explorer' && activeShape) setTimeout(initViewer, 100);
+}
+
+// ============ CHAT ============
+let chatHistory = [];
+
+async function sendMessage() {
+  const input = document.getElementById('chat-input');
+  const msg = input.value.trim();
+  if (!msg) return;
+
+  appendMsg('user', msg);
+  chatHistory.push({ role: 'user', content: msg });
+  input.value = '';
+  input.style.height = 'auto';
+
+  const btn = document.getElementById('send-btn');
+  btn.disabled = true;
+
+  // typing indicator
+  const typingEl = document.createElement('div');
+  typingEl.className = 'msg ai';
+  typingEl.id = 'typing';
+  typingEl.innerHTML = `
+    <div class="msg-avatar">AF</div>
+    <div class="msg-content">
+      <div class="typing-indicator">
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+      </div>
+    </div>`;
+  document.getElementById('chat-messages').appendChild(typingEl);
+  scrollChat();
+
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: chatHistory })
+    });
+    const data = await res.json();
+    document.getElementById('typing')?.remove();
+
+    if (data.error) {
+      appendMsg('ai', '⚠ Error: ' + data.error);
+    } else {
+      appendMsg('ai', data.content);
+      chatHistory.push({ role: 'assistant', content: data.content });
+    }
+  } catch (e) {
+    document.getElementById('typing')?.remove();
+    appendMsg('ai', '⚠ Connection error. Check server status.');
+  }
+
+  btn.disabled = false;
+}
+
+function appendMsg(role, text) {
+  const msgs = document.getElementById('chat-messages');
+  const el = document.createElement('div');
+  el.className = 'msg ' + role;
+  el.innerHTML = `
+    <div class="msg-avatar">${role === 'ai' ? 'AF' : 'YOU'}</div>
+    <div class="msg-content">
+      <div class="msg-label">${role === 'ai' ? 'AEROFORGE AI' : 'ENGINEER'}</div>
+      ${escapeHtml(text).replace(/\n/g, '<br>')}
+    </div>`;
+  msgs.appendChild(el);
+  scrollChat();
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function scrollChat() {
+  const msgs = document.getElementById('chat-messages');
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function fillPrompt(el) {
+  document.getElementById('chat-input').value = el.textContent;
+  document.getElementById('chat-input').focus();
+}
+
+document.getElementById('chat-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+
+document.getElementById('chat-input').addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 140) + 'px';
+});
+
+// ============ FILE EXPLORER ============
+async function loadShapes() {
+  const list = document.getElementById('file-list');
+  try {
+    const res = await fetch('/api/shapes');
+    const shapes = await res.json();
+    document.getElementById('shape-count').textContent = shapes.length + ' shapes';
+
+    if (shapes.length === 0) {
+      list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-dim);font-size:12px;font-family:monospace;">No shapes found</div>';
+      return;
+    }
+
+    list.innerHTML = shapes.map(s => `
+      <div class="file-item" onclick="selectShape('${s.url}', '${s.name}', this)">
+        <div class="file-name">${s.name}</div>
+        <div class="file-meta">
+          <span class="file-type-badge">${s.type}</span>
+          <span>${formatBytes(s.size)}</span>
+        </div>
+      </div>
+    `).join('');
+  } catch(e) {
+    list.innerHTML = '<div style="color:var(--red);font-size:11px;padding:12px;font-family:monospace;">Failed to load shapes</div>';
+  }
+}
+
+function formatBytes(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
+  return (b/1048576).toFixed(1) + ' MB';
+}
+
+async function uploadFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const fd = new FormData();
+  fd.append('file', file);
+  try {
+    const res = await fetch('/api/shapes/upload', { method: 'POST', body: fd });
+    const data = await res.json();
+    if (data.success) loadShapes();
+    else alert('Upload failed: ' + data.error);
+  } catch(e) {
+    alert('Upload error');
+  }
+  input.value = '';
+}
+
+// ============ THREE.JS VIEWER ============
+let renderer, scene, camera, animId, activeShape = null;
+let isDragging = false, isRightDrag = false;
+let prevMouse = { x: 0, y: 0 };
+let meshGroup;
+
+function selectShape(url, name, el) {
+  document.querySelectorAll('.file-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+  activeShape = { url, name };
+  loadOBJ(url, name);
+}
+
+function loadOBJ(url, name) {
+  document.getElementById('viewer-empty').style.display = 'none';
+  document.getElementById('viewer-header').style.display = 'flex';
+  document.getElementById('viewer-filename').textContent = name;
+  document.getElementById('threejs-canvas').style.display = 'block';
+  document.getElementById('info-overlay').style.display = 'block';
+
+  if (animId) cancelAnimationFrame(animId);
+  initThree();
+
+  fetch(url)
+    .then(r => r.text())
+    .then(text => parseOBJ(text, name))
+    .catch(e => console.error('Load error:', e));
+}
+
+function initThree() {
+  const canvas = document.getElementById('threejs-canvas');
+  const area = canvas.parentElement;
+
+  if (renderer) { renderer.dispose(); }
+
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setSize(area.clientWidth, area.clientHeight - 48);
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.setClearColor(0x03050a, 1);
+
+  scene = new THREE.Scene();
+
+  // Grid
+  const grid = new THREE.GridHelper(10, 20, 0x1a2d4a, 0x0d1626);
+  scene.add(grid);
+
+  camera = new THREE.PerspectiveCamera(45, renderer.domElement.width / renderer.domElement.height, 0.01, 1000);
+  camera.position.set(2, 2, 4);
+  camera.lookAt(0, 0, 0);
+
+  // Lights
+  scene.add(new THREE.AmbientLight(0x334466, 0.8));
+  const d1 = new THREE.DirectionalLight(0x00d4ff, 1.2);
+  d1.position.set(5, 8, 5);
+  scene.add(d1);
+  const d2 = new THREE.DirectionalLight(0xff6b35, 0.4);
+  d2.position.set(-5, -2, -3);
+  scene.add(d2);
+
+  meshGroup = new THREE.Group();
+  scene.add(meshGroup);
+
+  setupMouseControls(canvas);
+  animate();
+}
+
+function parseOBJ(text, name) {
+  const vertices = [];
+  const faces = [];
+
+  text.split('\n').forEach(line => {
+    const parts = line.trim().split(/\s+/);
+    if (parts[0] === 'v') {
+      vertices.push(new THREE.Vector3(
+        parseFloat(parts[1]), parseFloat(parts[2]), parseFloat(parts[3])
+      ));
+    } else if (parts[0] === 'f') {
+      const idx = parts.slice(1).map(p => parseInt(p.split('/')[0]) - 1);
+      for (let i = 1; i < idx.length - 1; i++) {
+        faces.push([idx[0], idx[i], idx[i+1]]);
+      }
+    }
+  });
+
+  const geometry = new THREE.BufferGeometry();
+  const posArr = [];
+  faces.forEach(([a, b, c]) => {
+    [a, b, c].forEach(i => {
+      const v = vertices[i];
+      if (v) posArr.push(v.x, v.y, v.z);
+    });
+  });
+
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(posArr, 3));
+  geometry.computeVertexNormals();
+
+  // Center geometry
+  geometry.computeBoundingBox();
+  const center = new THREE.Vector3();
+  geometry.boundingBox.getCenter(center);
+  geometry.translate(-center.x, -center.y, -center.z);
+
+  const size = new THREE.Vector3();
+  geometry.boundingBox.getSize(size);
+  const maxDim = Math.max(size.x, size.y, size.z);
+  const scale = 3 / maxDim;
+
+  // Solid mesh
+  const mat = new THREE.MeshPhongMaterial({
+    color: 0x0a1f3a,
+    emissive: 0x001133,
+    specular: 0x00d4ff,
+    shininess: 60,
+    side: THREE.DoubleSide,
+    transparent: true,
+    opacity: 0.85
+  });
+
+  // Wireframe
+  const wireMat = new THREE.MeshBasicMaterial({
+    color: 0x00d4ff,
+    wireframe: true,
+    transparent: true,
+    opacity: 0.4
+  });
+
+  while (meshGroup.children.length) meshGroup.remove(meshGroup.children[0]);
+
+  const solidMesh = new THREE.Mesh(geometry, mat);
+  solidMesh.scale.setScalar(scale);
+  meshGroup.add(solidMesh);
+
+  const wireMesh = new THREE.Mesh(geometry.clone(), wireMat);
+  wireMesh.scale.setScalar(scale * 1.001);
+  meshGroup.add(wireMesh);
+
+  // Info
+  document.getElementById('info-verts').textContent = vertices.length;
+  document.getElementById('info-faces').textContent = faces.length;
+  document.getElementById('info-bounds').textContent =
+    `${size.x.toFixed(2)} × ${size.y.toFixed(2)} × ${size.z.toFixed(2)}`;
+  document.getElementById('info-type').textContent = name.split('.').pop().toUpperCase();
+}
+
+function animate() {
+  animId = requestAnimationFrame(animate);
+  if (meshGroup && !isDragging) meshGroup.rotation.y += 0.003;
+  renderer.render(scene, camera);
+}
+
+function setupMouseControls(canvas) {
+  canvas.addEventListener('mousedown', e => {
+    isDragging = true;
+    isRightDrag = e.button === 2;
+    prevMouse = { x: e.clientX, y: e.clientY };
+  });
+
+  window.addEventListener('mouseup', () => isDragging = false);
+
+  window.addEventListener('mousemove', e => {
+    if (!isDragging) return;
+    const dx = e.clientX - prevMouse.x;
+    const dy = e.clientY - prevMouse.y;
+
+    if (isRightDrag) {
+      camera.position.x -= dx * 0.01;
+      camera.position.y += dy * 0.01;
+    } else {
+      meshGroup.rotation.y += dx * 0.01;
+      meshGroup.rotation.x += dy * 0.01;
+    }
+    prevMouse = { x: e.clientX, y: e.clientY };
+  });
+
+  canvas.addEventListener('wheel', e => {
+    camera.position.multiplyScalar(1 + e.deltaY * 0.001);
+  });
+
+  canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+  window.addEventListener('resize', () => {
+    if (!renderer) return;
+    const area = canvas.parentElement;
+    renderer.setSize(area.clientWidth, area.clientHeight - 48);
+    camera.aspect = renderer.domElement.width / renderer.domElement.height;
+    camera.updateProjectionMatrix();
+  });
+}
+
+// Init
+loadShapes();
+</script>
+</body>
+</html>
