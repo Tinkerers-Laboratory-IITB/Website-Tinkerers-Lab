@@ -100,7 +100,7 @@ export default function Footer() {
         <div className="border-t border-[#d12e56]/20 py-8 animate-fade-in">
           {/* Bottom Section */}
           <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-[#666666]">
-            <p>&copy; 2024 Tinkerers' Lab. All rights reserved.</p>
+            <p>&copy; 2026 Tinkerers' Lab. All rights reserved.</p>
             <div className="flex gap-6">
               <a href="#" className="hover:text-[#d12e56] transition-smooth hover-scale">
                 Twitter
